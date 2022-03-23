@@ -1,16 +1,10 @@
 import { NgModule } from '@angular/core';
 import { SharedComponent } from './shared.component';
-
-
+import { MultiplyByTenDirective } from './multiply-by-ten';
 
 @NgModule({
-  declarations: [
-    SharedComponent
-  ],
-  imports: [
-  ],
-  exports: [
-    SharedComponent
-  ]
+  declarations: [SharedComponent, MultiplyByTenDirective],
+  imports: [],
+  exports: [SharedComponent, MultiplyByTenDirective],
 })
-export class SharedModule { }
+export class SharedModule {}
