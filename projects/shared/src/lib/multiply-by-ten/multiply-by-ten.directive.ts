@@ -19,6 +19,6 @@ export class MultiplyByTenDirective implements OnInit {
   ngOnInit(): void {
     this.result = this.libMultiplyByTen * 10;
 
-    this.el.nativeElement.innerHTML = `The answer is <br> - ${this.result}`;
+    this.el.nativeElement.innerHTML = `${this.libMultiplyByTen} multiplied by 10 is <br> = ${this.result}`;
   }
 }
