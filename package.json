@@ -6,7 +6,9 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "build-tools": "cd tools && npm install && npm run build",
+    "rename": "node tools/dist/rename-angular-files.js"
   },
   "private": true,
   "dependencies": {
