@@ -123,7 +123,9 @@ class AngularFileRenamer {
    */
   private hasSuffix(fileName: string): boolean {
     const nameWithoutExt = path.parse(fileName).name;
-    return nameWithoutExt.endsWith(`.${this.suffix}`);
+    // Check if the filename contains the suffix pattern (e.g., .component)
+    // This handles cases like app.component.ts, app.component.spec.ts, etc.
+    return nameWithoutExt.includes(`.${this.suffix}`);
   }
 
   /**
@@ -134,6 +136,8 @@ class AngularFileRenamer {
 
     for (const file of files) {
       const parsed = path.parse(file);
+      // Remove the suffix pattern from the filename
+      // This handles cases like app.component.ts -> app.ts, app.component.spec.ts -> app.spec.ts
       const baseName = parsed.name.replace(`.${this.suffix}`, '');
       const key = path.join(parsed.dir, baseName);
 
