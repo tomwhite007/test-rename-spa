@@ -169,10 +169,15 @@ class AngularFileRenamer {
       if (classInfo) {
         className = classInfo.className;
         newClassName = classInfo.newClassName;
-        console.log(`   🏷️  Class: ${className} → ${newClassName}`);
+        const nameType = ['guard', 'interceptor', 'resolver'].includes(
+          this.suffix
+        )
+          ? 'Function'
+          : 'Class';
+        console.log(`   🏷️  ${nameType}: ${className} → ${newClassName}`);
       } else if (['class', 'enum', 'interface'].includes(this.suffix)) {
         console.log(
-          `   📝 File-only rename (no class name change for ${this.suffix} files)`
+          `   📝 File-only rename (no name change for ${this.suffix} files)`
         );
       }
     }
@@ -204,7 +209,7 @@ class AngularFileRenamer {
   }
 
   /**
-   * Extract class name from a TypeScript file
+   * Extract class or function name from a TypeScript file
    */
   private extractClassName(
     filePath: string
@@ -223,10 +228,10 @@ class AngularFileRenamer {
         `export\\s+class\\s+(\\w*${this.capitalize(this.suffix)})\\b`,
         'g'
       );
-      const match = classRegex.exec(content);
+      const classMatch = classRegex.exec(content);
 
-      if (match) {
-        const className = match[1];
+      if (classMatch) {
+        const className = classMatch[1];
         const newClassName = className.replace(
           new RegExp(`${this.capitalize(this.suffix)}$`),
           ''
@@ -234,10 +239,31 @@ class AngularFileRenamer {
         return { className, newClassName };
       }
 
+      // For guard, interceptor, and resolver files, also check for function names
+      if (['guard', 'interceptor', 'resolver'].includes(this.suffix)) {
+        // Look for export function declarations
+        const functionRegex = new RegExp(
+          `export\\s+(?:const\\s+)?(\\w*${this.capitalize(
+            this.suffix
+          )})\\s*[=:]`,
+          'g'
+        );
+        const functionMatch = functionRegex.exec(content);
+
+        if (functionMatch) {
+          const functionName = functionMatch[1];
+          const newFunctionName = functionName.replace(
+            new RegExp(`${this.capitalize(this.suffix)}$`),
+            ''
+          );
+          return { className: functionName, newClassName: newFunctionName };
+        }
+      }
+
       return null;
     } catch (error) {
       console.warn(
-        `⚠️  Warning: Could not extract class name from ${filePath}: ${
+        `⚠️  Warning: Could not extract class/function name from ${filePath}: ${
           (error as Error).message
         }`
       );
@@ -246,7 +272,7 @@ class AngularFileRenamer {
   }
 
   /**
-   * Update class name in a file
+   * Update class or function name in a file
    */
   private updateClassNameInFile(
     filePath: string,
@@ -268,7 +294,17 @@ class AngularFileRenamer {
         return match.replace(oldClassName, newClassName);
       });
 
-      // Update implements clauses
+      // Update function declaration (for guards, interceptors, resolvers)
+      const functionDeclarationRegex = new RegExp(
+        `export\\s+(?:const\\s+)?${oldClassName}\\s*[=:]`,
+        'g'
+      );
+      newContent = newContent.replace(functionDeclarationRegex, (match) => {
+        hasChanges = true;
+        return match.replace(oldClassName, newClassName);
+      });
+
+      // Update implements clauses and other references
       const implementsRegex = new RegExp(`\\b${oldClassName}\\b`, 'g');
       newContent = newContent.replace(implementsRegex, (match) => {
         hasChanges = true;
@@ -283,8 +319,13 @@ class AngularFileRenamer {
           className: oldClassName,
           newClassName: newClassName,
         });
+        const nameType = ['guard', 'interceptor', 'resolver'].includes(
+          this.suffix
+        )
+          ? 'function'
+          : 'class';
         console.log(
-          `   ✅ Updated class name in ${path.relative(
+          `   ✅ Updated ${nameType} name in ${path.relative(
             this.projectRoot,
             filePath
           )}`
@@ -292,7 +333,7 @@ class AngularFileRenamer {
       }
     } catch (error) {
       console.warn(
-        `⚠️  Warning: Could not update class name in ${filePath}: ${
+        `⚠️  Warning: Could not update class/function name in ${filePath}: ${
           (error as Error).message
         }`
       );
@@ -526,7 +567,7 @@ Examples:
 This script will:
 1. Find all files with the specified suffix (e.g., .component.ts, .component.html, etc.)
 2. Rename them by removing the suffix (e.g., app.component.ts → app.ts)
-3. Update class names by removing the suffix (e.g., AppComponent → App)
+3. Update class/function names by removing the suffix (e.g., AppComponent → App, Auth → Auth)
    Note: For class, enum, and interface files, only file names are renamed
 4. Update all import statements, templateUrl, styleUrls, and other references
 5. Handle TypeScript, HTML, CSS, SCSS, SASS, LESS, and spec files

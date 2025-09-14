@@ -60,6 +60,30 @@ To rename all `.interface` files (file names only, interface names unchanged):
 npm run rename interface
 ```
 
+### Rename Guard Files
+
+To rename all `.guard` files and update function names:
+
+```bash
+npm run rename guard
+```
+
+### Rename Interceptor Files
+
+To rename all `.interceptor` files and update function names:
+
+```bash
+npm run rename interceptor
+```
+
+### Rename Resolver Files
+
+To rename all `.resolver` files and update function names:
+
+```bash
+npm run rename resolver
+```
+
 ### Dry Run
 
 To preview changes without modifying files:
@@ -72,8 +96,9 @@ npm run rename component --dry-run
 
 1. **Finds all files** with the specified suffix (e.g., `.component.ts`, `.component.html`, `.component.scss`, etc.)
 2. **Renames files** by removing the suffix (e.g., `app.component.ts` → `app.ts`)
-3. **Updates class names** by removing the suffix (e.g., `AppComponent` → `App`)
+3. **Updates class/function names** by removing the suffix (e.g., `AppComponent` → `App`, `AuthGuard` → `Auth`)
    - **Note**: For `class`, `enum`, and `interface` files, only file names are renamed (the class/enum/interface names themselves don't include the suffix)
+   - **Note**: For `guard`, `interceptor`, and `resolver` files, both file names and function names are updated (modern Angular uses functions for these)
 4. **Updates all references** including:
    - Import statements
    - `templateUrl` and `styleUrls` in `@Component` decorators
@@ -140,6 +165,28 @@ src/app/
 ├── test.ts              (still contains: export class Test)
 ├── config.ts            (still contains: export enum Config)
 └── user.ts              (still contains: export interface User)
+```
+
+### Function Name Updates for Guards, Interceptors, and Resolvers
+
+For these file types, both **file names** and **function names** are updated:
+
+#### Before
+
+```
+src/app/
+├── auth.guard.ts        (contains: export const AuthGuard = ...)
+├── api.interceptor.ts   (contains: export const ApiInterceptor = ...)
+└── user.resolver.ts     (contains: export const UserResolver = ...)
+```
+
+#### After running `npm run rename guard`, `npm run rename interceptor`, `npm run rename resolver`
+
+```
+src/app/
+├── auth.ts              (contains: export const Auth = ...)
+├── api.ts               (contains: export const Api = ...)
+└── user.ts              (contains: export const User = ...)
 ```
 
 ## Development
