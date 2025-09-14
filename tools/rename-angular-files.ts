@@ -170,6 +170,10 @@ class AngularFileRenamer {
         className = classInfo.className;
         newClassName = classInfo.newClassName;
         console.log(`   🏷️  Class: ${className} → ${newClassName}`);
+      } else if (['class', 'enum', 'interface'].includes(this.suffix)) {
+        console.log(
+          `   📝 File-only rename (no class name change for ${this.suffix} files)`
+        );
       }
     }
 
@@ -207,6 +211,12 @@ class AngularFileRenamer {
   ): { className: string; newClassName: string } | null {
     try {
       const content = fs.readFileSync(filePath, 'utf8');
+
+      // For class, enum, and interface files, the names don't include the suffix
+      // so we don't need to rename the class/enum/interface names
+      if (['class', 'enum', 'interface'].includes(this.suffix)) {
+        return null;
+      }
 
       // Look for export class declarations
       const classRegex = new RegExp(
@@ -516,7 +526,8 @@ Examples:
 This script will:
 1. Find all files with the specified suffix (e.g., .component.ts, .component.html, etc.)
 2. Rename them by removing the suffix (e.g., app.component.ts → app.ts)
-3. Update class names by removing the suffix (e.g., App → App)
+3. Update class names by removing the suffix (e.g., AppComponent → App)
+   Note: For class, enum, and interface files, only file names are renamed
 4. Update all import statements, templateUrl, styleUrls, and other references
 5. Handle TypeScript, HTML, CSS, SCSS, SASS, LESS, and spec files
 `);

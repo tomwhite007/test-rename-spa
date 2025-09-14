@@ -36,6 +36,30 @@ To rename all `.directive` files and update references:
 npm run rename directive
 ```
 
+### Rename Class Files
+
+To rename all `.class` files (file names only, class names unchanged):
+
+```bash
+npm run rename class
+```
+
+### Rename Enum Files
+
+To rename all `.enum` files (file names only, enum names unchanged):
+
+```bash
+npm run rename enum
+```
+
+### Rename Interface Files
+
+To rename all `.interface` files (file names only, interface names unchanged):
+
+```bash
+npm run rename interface
+```
+
 ### Dry Run
 
 To preview changes without modifying files:
@@ -49,6 +73,7 @@ npm run rename component --dry-run
 1. **Finds all files** with the specified suffix (e.g., `.component.ts`, `.component.html`, `.component.scss`, etc.)
 2. **Renames files** by removing the suffix (e.g., `app.component.ts` → `app.ts`)
 3. **Updates class names** by removing the suffix (e.g., `AppComponent` → `App`)
+   - **Note**: For `class`, `enum`, and `interface` files, only file names are renamed (the class/enum/interface names themselves don't include the suffix)
 4. **Updates all references** including:
    - Import statements
    - `templateUrl` and `styleUrls` in `@Component` decorators
@@ -93,6 +118,28 @@ src/app/
     ├── products.html
     ├── products.scss
     └── products.spec.ts
+```
+
+### Special Behavior for Class, Enum, and Interface Files
+
+For these file types, only the **file names** are renamed, not the class/enum/interface names:
+
+#### Before
+
+```
+src/app/
+├── test.class.ts        (contains: export class Test)
+├── config.enum.ts       (contains: export enum Config)
+└── user.interface.ts    (contains: export interface User)
+```
+
+#### After running `npm run rename class`, `npm run rename enum`, `npm run rename interface`
+
+```
+src/app/
+├── test.ts              (still contains: export class Test)
+├── config.ts            (still contains: export enum Config)
+└── user.ts              (still contains: export interface User)
 ```
 
 ## Development
