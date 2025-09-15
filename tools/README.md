@@ -96,9 +96,9 @@ npm run rename component --dry-run
 
 1. **Finds all files** with the specified suffix (e.g., `.component.ts`, `.component.html`, `.component.scss`, etc.)
 2. **Renames files** by removing the suffix (e.g., `app.component.ts` → `app.ts`)
-3. **Updates class/function names** by removing the suffix (e.g., `AppComponent` → `App`, `AuthGuard` → `Auth`)
+3. **Updates class/function names** by removing the suffix (e.g., `AppComponent` → `App`)
    - **Note**: For `class`, `enum`, and `interface` files, only file names are renamed (the class/enum/interface names themselves don't include the suffix)
-   - **Note**: For `guard`, `interceptor`, and `resolver` files, both file names and function names are updated (modern Angular uses functions for these)
+   - **Note**: For `pipe`, `module`, `guard`, `interceptor`, and `resolver` files, only file names are renamed (replacing `.type` with `-type`)
 4. **Updates all references** including:
    - Import statements
    - `templateUrl` and `styleUrls` in `@Component` decorators
@@ -167,26 +167,30 @@ src/app/
 └── user.ts              (still contains: export interface User)
 ```
 
-### Function Name Updates for Guards, Interceptors, and Resolvers
+### Dash-Suffix Updates for Pipes, Modules, Guards, Interceptors, and Resolvers
 
-For these file types, both **file names** and **function names** are updated:
+For these file types, **file names** are updated from dot notation to dash notation:
 
 #### Before
 
 ```
 src/app/
+├── product.pipe.ts      (contains: export class ProductPipe)
+├── products.module.ts   (contains: export class ProductsModule)
 ├── auth.guard.ts        (contains: export const AuthGuard = ...)
 ├── api.interceptor.ts   (contains: export const ApiInterceptor = ...)
 └── user.resolver.ts     (contains: export const UserResolver = ...)
 ```
 
-#### After running `npm run rename guard`, `npm run rename interceptor`, `npm run rename resolver`
+#### After running `npm run rename pipe`, `npm run rename module`, `npm run rename guard`, etc.
 
 ```
 src/app/
-├── auth.ts              (contains: export const Auth = ...)
-├── api.ts               (contains: export const Api = ...)
-└── user.ts              (contains: export const User = ...)
+├── product-pipe.ts      (contains: export class ProductPipe)
+├── products-module.ts   (contains: export class ProductsModule)
+├── auth-guard.ts        (contains: export const AuthGuard = ...)
+├── api-interceptor.ts   (contains: export const ApiInterceptor = ...)
+└── user-resolver.ts     (contains: export const UserResolver = ...)
 ```
 
 ## Development

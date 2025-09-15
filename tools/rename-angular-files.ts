@@ -175,7 +175,18 @@ class AngularFileRenamer {
           ? 'Function'
           : 'Class';
         console.log(`   🏷️  ${nameType}: ${className} → ${newClassName}`);
-      } else if (['class', 'enum', 'interface'].includes(this.suffix)) {
+      } else if (
+        [
+          'class',
+          'enum',
+          'interface',
+          'pipe',
+          'module',
+          'guard',
+          'interceptor',
+          'resolver',
+        ].includes(this.suffix)
+      ) {
         console.log(
           `   📝 File-only rename (no name change for ${this.suffix} files)`
         );
@@ -184,8 +195,22 @@ class AngularFileRenamer {
 
     for (const file of files) {
       const parsed = path.parse(file);
-      const newFileName =
-        parsed.name.replace(`.${this.suffix}`, '') + parsed.ext;
+
+      // Special handling for pipe, module, guard, interceptor, resolver
+      // Replace .type with -type (dot to dash)
+      let newFileName: string;
+      if (
+        ['pipe', 'module', 'guard', 'interceptor', 'resolver'].includes(
+          this.suffix
+        )
+      ) {
+        newFileName =
+          parsed.name.replace(`.${this.suffix}`, `-${this.suffix}`) +
+          parsed.ext;
+      } else {
+        newFileName = parsed.name.replace(`.${this.suffix}`, '') + parsed.ext;
+      }
+
       const newFilePath = path.join(parsed.dir, newFileName);
 
       console.log(`   ${path.basename(file)} → ${newFileName}`);
@@ -220,6 +245,16 @@ class AngularFileRenamer {
       // For class, enum, and interface files, the names don't include the suffix
       // so we don't need to rename the class/enum/interface names
       if (['class', 'enum', 'interface'].includes(this.suffix)) {
+        return null;
+      }
+
+      // For pipe, module, guard, interceptor, resolver files, the names already have the correct suffix
+      // so we don't need to rename them (we only change the file extension from .type to -type)
+      if (
+        ['pipe', 'module', 'guard', 'interceptor', 'resolver'].includes(
+          this.suffix
+        )
+      ) {
         return null;
       }
 
@@ -567,8 +602,8 @@ Examples:
 This script will:
 1. Find all files with the specified suffix (e.g., .component.ts, .component.html, etc.)
 2. Rename them by removing the suffix (e.g., app.component.ts → app.ts)
-3. Update class/function names by removing the suffix (e.g., AppComponent → App, Auth → Auth)
-   Note: For class, enum, and interface files, only file names are renamed
+3. Update class/function names by removing the suffix (e.g., AppComponent → App)
+   Note: For class, enum, interface, pipe, module, guard, interceptor, and resolver files, only file names are renamed
 4. Update all import statements, templateUrl, styleUrls, and other references
 5. Handle TypeScript, HTML, CSS, SCSS, SASS, LESS, and spec files
 `);
