@@ -588,16 +588,16 @@ function main(): void {
 
   if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
     console.log(`
-Usage: npx ts-node rename-angular-files.ts <suffix> [--dry-run]
+Usage: node tools/dist/rename-angular-files.js <suffix> [--dry-run]
 
 Arguments:
   suffix     The suffix to remove from filenames and class names (e.g., component, service, directive)
   --dry-run  Preview changes without modifying files
 
 Examples:
-  npx ts-node rename-angular-files.ts component
-  npx ts-node rename-angular-files.ts service --dry-run
-  npx ts-node rename-angular-files.ts directive
+  node tools/dist/rename-angular-files.js component
+  node tools/dist/rename-angular-files.js service --dry-run
+  node tools/dist/rename-angular-files.js directive
 
 This script will:
 1. Find all files with the specified suffix (e.g., .component.ts, .component.html, etc.)
