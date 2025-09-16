@@ -169,11 +169,7 @@ class AngularFileRenamer {
       if (classInfo) {
         className = classInfo.className;
         newClassName = classInfo.newClassName;
-        const nameType = ['guard', 'interceptor', 'resolver'].includes(
-          this.suffix
-        )
-          ? 'Function'
-          : 'Class';
+        const nameType = classInfo.isClass ? 'Class' : 'Function';
         console.log(`   🏷️  ${nameType}: ${className} → ${newClassName}`);
       } else if (
         [
@@ -226,7 +222,14 @@ class AngularFileRenamer {
 
         // Update class name in the main TypeScript file
         if (file === mainTsFile && className && newClassName) {
-          this.updateClassNameInFile(newFilePath, className, newClassName);
+          const classInfo = this.extractClassName(file);
+          const isClass = classInfo?.isClass ?? true; // Default to class if not found
+          this.updateClassNameInFile(
+            newFilePath,
+            className,
+            newClassName,
+            isClass
+          );
         }
       }
     }
@@ -238,7 +241,7 @@ class AngularFileRenamer {
    */
   private extractClassName(
     filePath: string
-  ): { className: string; newClassName: string } | null {
+  ): { className: string; newClassName: string; isClass: boolean } | null {
     try {
       const content = fs.readFileSync(filePath, 'utf8');
 
@@ -248,35 +251,46 @@ class AngularFileRenamer {
         return null;
       }
 
-      // For pipe, module, guard, interceptor, resolver files, the names already have the correct suffix
-      // so we don't need to rename them (we only change the file extension from .type to -type)
-      if (
-        ['pipe', 'module', 'guard', 'interceptor', 'resolver'].includes(
-          this.suffix
-        )
-      ) {
+      // For pipe and module files, check for class declarations (both are typically classes)
+      if (['pipe', 'module'].includes(this.suffix)) {
+        const classRegex = new RegExp(
+          `export\\s+class\\s+(\\w*${this.capitalize(this.suffix)})\\b`,
+          'g'
+        );
+        const classMatch = classRegex.exec(content);
+
+        if (classMatch) {
+          const className = classMatch[1];
+          const newClassName = className.replace(
+            new RegExp(`${this.capitalize(this.suffix)}$`),
+            ''
+          );
+          return { className, newClassName, isClass: true };
+        }
+
+        // If no class found, return null (file-only rename)
         return null;
       }
 
-      // Look for export class declarations
-      const classRegex = new RegExp(
-        `export\\s+class\\s+(\\w*${this.capitalize(this.suffix)})\\b`,
-        'g'
-      );
-      const classMatch = classRegex.exec(content);
-
-      if (classMatch) {
-        const className = classMatch[1];
-        const newClassName = className.replace(
-          new RegExp(`${this.capitalize(this.suffix)}$`),
-          ''
-        );
-        return { className, newClassName };
-      }
-
-      // For guard, interceptor, and resolver files, also check for function names
+      // For guard, interceptor, and resolver files, check for both class and function implementations
       if (['guard', 'interceptor', 'resolver'].includes(this.suffix)) {
-        // Look for export function declarations
+        // First, look for export class declarations
+        const classRegex = new RegExp(
+          `export\\s+class\\s+(\\w*${this.capitalize(this.suffix)})\\b`,
+          'g'
+        );
+        const classMatch = classRegex.exec(content);
+
+        if (classMatch) {
+          const className = classMatch[1];
+          const newClassName = className.replace(
+            new RegExp(`${this.capitalize(this.suffix)}$`),
+            ''
+          );
+          return { className, newClassName, isClass: true };
+        }
+
+        // If no class found, look for export function declarations
         const functionRegex = new RegExp(
           `export\\s+(?:const\\s+)?(\\w*${this.capitalize(
             this.suffix
@@ -291,8 +305,31 @@ class AngularFileRenamer {
             new RegExp(`${this.capitalize(this.suffix)}$`),
             ''
           );
-          return { className: functionName, newClassName: newFunctionName };
+          return {
+            className: functionName,
+            newClassName: newFunctionName,
+            isClass: false,
+          };
         }
+
+        // If neither class nor function found, return null (file-only rename)
+        return null;
+      }
+
+      // For other file types (component, service, directive), look for export class declarations
+      const classRegex = new RegExp(
+        `export\\s+class\\s+(\\w*${this.capitalize(this.suffix)})\\b`,
+        'g'
+      );
+      const classMatch = classRegex.exec(content);
+
+      if (classMatch) {
+        const className = classMatch[1];
+        const newClassName = className.replace(
+          new RegExp(`${this.capitalize(this.suffix)}$`),
+          ''
+        );
+        return { className, newClassName, isClass: true };
       }
 
       return null;
@@ -312,32 +349,35 @@ class AngularFileRenamer {
   private updateClassNameInFile(
     filePath: string,
     oldClassName: string,
-    newClassName: string
+    newClassName: string,
+    isClass: boolean = true
   ): void {
     try {
       const content = fs.readFileSync(filePath, 'utf8');
       let newContent = content;
       let hasChanges = false;
 
-      // Update class declaration
-      const classDeclarationRegex = new RegExp(
-        `export\\s+class\\s+${oldClassName}\\b`,
-        'g'
-      );
-      newContent = newContent.replace(classDeclarationRegex, (match) => {
-        hasChanges = true;
-        return match.replace(oldClassName, newClassName);
-      });
-
-      // Update function declaration (for guards, interceptors, resolvers)
-      const functionDeclarationRegex = new RegExp(
-        `export\\s+(?:const\\s+)?${oldClassName}\\s*[=:]`,
-        'g'
-      );
-      newContent = newContent.replace(functionDeclarationRegex, (match) => {
-        hasChanges = true;
-        return match.replace(oldClassName, newClassName);
-      });
+      if (isClass) {
+        // Update class declaration
+        const classDeclarationRegex = new RegExp(
+          `export\\s+class\\s+${oldClassName}\\b`,
+          'g'
+        );
+        newContent = newContent.replace(classDeclarationRegex, (match) => {
+          hasChanges = true;
+          return match.replace(oldClassName, newClassName);
+        });
+      } else {
+        // Update function declaration (for guards, interceptors, resolvers)
+        const functionDeclarationRegex = new RegExp(
+          `export\\s+(?:const\\s+)?${oldClassName}\\s*[=:]`,
+          'g'
+        );
+        newContent = newContent.replace(functionDeclarationRegex, (match) => {
+          hasChanges = true;
+          return match.replace(oldClassName, newClassName);
+        });
+      }
 
       // Update implements clauses and other references
       const implementsRegex = new RegExp(`\\b${oldClassName}\\b`, 'g');
@@ -354,11 +394,7 @@ class AngularFileRenamer {
           className: oldClassName,
           newClassName: newClassName,
         });
-        const nameType = ['guard', 'interceptor', 'resolver'].includes(
-          this.suffix
-        )
-          ? 'function'
-          : 'class';
+        const nameType = isClass ? 'class' : 'function';
         console.log(
           `   ✅ Updated ${nameType} name in ${path.relative(
             this.projectRoot,
@@ -444,7 +480,21 @@ class AngularFileRenamer {
         'g'
       );
       newContent = newContent.replace(importRegex, (match, importPath) => {
-        const newImportPath = importPath.replace(`.${this.suffix}`, '');
+        let newImportPath: string;
+        // For pipe, module, guard, interceptor, resolver files, replace .suffix with -suffix
+        if (
+          ['pipe', 'module', 'guard', 'interceptor', 'resolver'].includes(
+            this.suffix
+          )
+        ) {
+          newImportPath = importPath.replace(
+            `.${this.suffix}`,
+            `-${this.suffix}`
+          );
+        } else {
+          // For other file types, remove the suffix entirely
+          newImportPath = importPath.replace(`.${this.suffix}`, '');
+        }
         hasChanges = true;
         return match.replace(importPath, newImportPath);
       });
@@ -496,7 +546,21 @@ class AngularFileRenamer {
         'g'
       );
       newContent = newContent.replace(requireRegex, (match, requirePath) => {
-        const newRequirePath = requirePath.replace(`.${this.suffix}`, '');
+        let newRequirePath: string;
+        // For pipe, module, guard, interceptor, resolver files, replace .suffix with -suffix
+        if (
+          ['pipe', 'module', 'guard', 'interceptor', 'resolver'].includes(
+            this.suffix
+          )
+        ) {
+          newRequirePath = requirePath.replace(
+            `.${this.suffix}`,
+            `-${this.suffix}`
+          );
+        } else {
+          // For other file types, remove the suffix entirely
+          newRequirePath = requirePath.replace(`.${this.suffix}`, '');
+        }
         hasChanges = true;
         return match.replace(requirePath, newRequirePath);
       });
