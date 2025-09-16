@@ -565,6 +565,31 @@ class AngularFileRenamer {
         return match.replace(requirePath, newRequirePath);
       });
 
+      // Update lazy loading paths in router modules and standalone router configs
+      const lazyLoadRegex = new RegExp(
+        `import\\(['"]([^'"]*\\.${this.suffix})['"]\\)`,
+        'g'
+      );
+      newContent = newContent.replace(lazyLoadRegex, (match, importPath) => {
+        let newImportPath: string;
+        // For pipe, module, guard, interceptor, resolver files, replace .suffix with -suffix
+        if (
+          ['pipe', 'module', 'guard', 'interceptor', 'resolver'].includes(
+            this.suffix
+          )
+        ) {
+          newImportPath = importPath.replace(
+            `.${this.suffix}`,
+            `-${this.suffix}`
+          );
+        } else {
+          // For other file types, remove the suffix entirely
+          newImportPath = importPath.replace(`.${this.suffix}`, '');
+        }
+        hasChanges = true;
+        return match.replace(importPath, newImportPath);
+      });
+
       // Update class name references in imports and declarations
       const classChanges = this.changes.filter(
         (c) => c.type === 'update_class_name'
