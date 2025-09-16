@@ -23,7 +23,7 @@ class AngularFileRenamer {
   private suffix: string;
   private dryRun: boolean;
   private projectRoot: string;
-  private changes: ChangeRecord[] = [];
+  public changes: ChangeRecord[] = [];
   private readonly fileExtensions = [
     '.ts',
     '.html',
@@ -671,30 +671,108 @@ class AngularFileRenamer {
   }
 }
 
+/**
+ * Wrapper function to rename all Angular file types
+ */
+async function renameAllAngularFiles(dryRun: boolean = false): Promise<void> {
+  console.log('🚀 Starting comprehensive Angular file rename operation');
+  if (dryRun) {
+    console.log('🔍 Running in dry-run mode - no files will be modified');
+  }
+  console.log('');
+
+  // Define all Angular file types in the order they should be processed
+  // Order matters: modules should be processed last since other files might import them
+  const angularTypes = [
+    'component',
+    'service',
+    'directive',
+    'pipe',
+    'guard',
+    'interceptor',
+    'resolver',
+    'module',
+  ];
+
+  let totalChanges = 0;
+  let processedTypes = 0;
+
+  for (const type of angularTypes) {
+    console.log(`\n📋 Processing ${type} files...`);
+    console.log('='.repeat(50));
+
+    try {
+      const renamer = new AngularFileRenamer(type, dryRun);
+      await renamer.execute();
+
+      // Count changes from the renamer's changes array
+      const changes = renamer.changes?.length || 0;
+      totalChanges += changes;
+      processedTypes++;
+
+      if (changes > 0) {
+        console.log(
+          `✅ ${type} files processed successfully (${changes} changes)`
+        );
+      } else {
+        console.log(`ℹ️  No ${type} files found to rename`);
+      }
+    } catch (error) {
+      console.error(
+        `❌ Error processing ${type} files:`,
+        (error as Error).message
+      );
+      // Continue with other types even if one fails
+    }
+  }
+
+  // Summary
+  console.log('\n' + '='.repeat(50));
+  console.log('📊 Comprehensive Rename Summary:');
+  console.log(
+    `   📁 File types processed: ${processedTypes}/${angularTypes.length}`
+  );
+  console.log(`   📝 Total changes made: ${totalChanges}`);
+
+  if (dryRun) {
+    console.log('');
+    console.log('🔍 This was a dry run. No files were actually modified.');
+    console.log('   Run without --dry-run to apply all changes.');
+  } else {
+    console.log('');
+    console.log('✅ Comprehensive Angular file rename completed successfully!');
+  }
+}
+
 // CLI handling
 function main(): void {
   const args = process.argv.slice(2);
 
   if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
     console.log(`
-Usage: node tools/dist/rename-angular-files.js <suffix> [--dry-run]
+Usage: node tools/dist/rename-angular-files.js <suffix|all> [--dry-run]
 
 Arguments:
   suffix     The suffix to remove from filenames and class names (e.g., component, service, directive)
+  all        Process all Angular file types in sequence (component, service, directive, pipe, guard, interceptor, resolver, module)
   --dry-run  Preview changes without modifying files
 
 Examples:
   node tools/dist/rename-angular-files.js component
   node tools/dist/rename-angular-files.js service --dry-run
-  node tools/dist/rename-angular-files.js directive
+  node tools/dist/rename-angular-files.js all
+  node tools/dist/rename-angular-files.js all --dry-run
 
 This script will:
 1. Find all files with the specified suffix (e.g., .component.ts, .component.html, etc.)
 2. Rename them by removing the suffix (e.g., app.component.ts → app.ts)
-3. Update class/function names by removing the suffix (e.g., AppComponent → App)
+3. Update class/function names by removing the suffix (e.g., App → App)
    Note: For class, enum, interface, pipe, module, guard, interceptor, and resolver files, only file names are renamed
 4. Update all import statements, templateUrl, styleUrls, and other references
 5. Handle TypeScript, HTML, CSS, SCSS, SASS, LESS, and spec files
+
+When using 'all', the script processes file types in this order:
+  component → service → directive → pipe → guard → interceptor → resolver → module
 `);
     process.exit(0);
   }
@@ -703,15 +781,22 @@ This script will:
   const dryRun = args.includes('--dry-run');
 
   if (!suffix) {
-    console.error('❌ Error: Please specify a suffix to remove');
+    console.error('❌ Error: Please specify a suffix to remove or use "all"');
     process.exit(1);
   }
 
-  const renamer = new AngularFileRenamer(suffix, dryRun);
-  renamer.execute().catch((error) => {
-    console.error('❌ Fatal error:', (error as Error).message);
-    process.exit(1);
-  });
+  if (suffix === 'all') {
+    renameAllAngularFiles(dryRun).catch((error) => {
+      console.error('❌ Fatal error:', (error as Error).message);
+      process.exit(1);
+    });
+  } else {
+    const renamer = new AngularFileRenamer(suffix, dryRun);
+    renamer.execute().catch((error) => {
+      console.error('❌ Fatal error:', (error as Error).message);
+      process.exit(1);
+    });
+  }
 }
 
 if (require.main === module) {
