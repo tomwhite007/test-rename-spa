@@ -222,7 +222,7 @@ class AngularFileRenamer {
 
         // Update class name in the main TypeScript file
         if (file === mainTsFile && className && newClassName) {
-          const classInfo = this.extractClassName(file);
+          const classInfo = this.extractClassName(newFilePath);
           const isClass = classInfo?.isClass ?? true; // Default to class if not found
           this.updateClassNameInFile(
             newFilePath,
@@ -261,11 +261,8 @@ class AngularFileRenamer {
 
         if (classMatch) {
           const className = classMatch[1];
-          const newClassName = className.replace(
-            new RegExp(`${this.capitalize(this.suffix)}$`),
-            ''
-          );
-          return { className, newClassName, isClass: true };
+          // For pipe and module files, keep the class name as-is (don't remove the suffix)
+          return { className, newClassName: className, isClass: true };
         }
 
         // If no class found, return null (file-only rename)
@@ -283,11 +280,8 @@ class AngularFileRenamer {
 
         if (classMatch) {
           const className = classMatch[1];
-          const newClassName = className.replace(
-            new RegExp(`${this.capitalize(this.suffix)}$`),
-            ''
-          );
-          return { className, newClassName, isClass: true };
+          // For guard, interceptor, and resolver files, keep the class name as-is (don't remove the suffix)
+          return { className, newClassName: className, isClass: true };
         }
 
         // If no class found, look for export function declarations
@@ -301,13 +295,10 @@ class AngularFileRenamer {
 
         if (functionMatch) {
           const functionName = functionMatch[1];
-          const newFunctionName = functionName.replace(
-            new RegExp(`${this.capitalize(this.suffix)}$`),
-            ''
-          );
+          // For guard, interceptor, and resolver files, keep the function name as-is (don't remove the suffix)
           return {
             className: functionName,
-            newClassName: newFunctionName,
+            newClassName: functionName,
             isClass: false,
           };
         }
@@ -353,6 +344,11 @@ class AngularFileRenamer {
     isClass: boolean = true
   ): void {
     try {
+      // If the class name doesn't change, skip the update
+      if (oldClassName === newClassName) {
+        return;
+      }
+
       const content = fs.readFileSync(filePath, 'utf8');
       let newContent = content;
       let hasChanges = false;
